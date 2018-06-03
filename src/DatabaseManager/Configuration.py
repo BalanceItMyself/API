@@ -20,7 +20,8 @@ class Configuration:
         self.postgresdb_username = postgresdb_username
         self.postgresdb_password = postgresdb_password
 
-    def get_conf(cls):
+    @staticmethod
+    def get_conf():
         """
         Class method to initialize the variables
         :return: class instance
@@ -33,7 +34,7 @@ class Configuration:
         cf.update({
             "postgresdb_host": etcd_client.read("/bi_postgres_db/host").value,
             "postgresdb_port": int(etcd_client.read("bi_postgres_db/port").value),
-            "postresdb_username": etcd_client.read("/bi_postgres_db/username").value,
+            "postgresdb_username": etcd_client.read("/bi_postgres_db/username").value,
             "postgresdb_password": etcd_client.read("/bi_postgres_db/password").value,
             "postgresdb_database": etcd_client.read("/bi_postgres_db/database").value
         })

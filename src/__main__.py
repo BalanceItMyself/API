@@ -13,6 +13,7 @@ def main():
     app = Flask(__name__)
     api = Api(app)
     api.add_resource(Users, "/user/<string:name>")
+    # api.add_resource(Group, "/group/<string:group_name>")
     app.run(host="0.0.0.0", threaded=True)
 
 

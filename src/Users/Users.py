@@ -13,8 +13,6 @@ pg_connection = pg_manager.create_connection()
 pg_cursor_read = pg_manager.get_cursor(connection=pg_connection, read_only=True)
 pg_cursor_write = pg_manager.get_cursor(connection=pg_connection, read_only=False)
 
-query_for_all_users = "select * from cloud.users"
-
 
 def create_unique_hash(unique_string):
     return hashlib.md5(unique_string.strip().encode("utf-8")).hexdigest()
@@ -24,17 +22,16 @@ class Users(Resource):
 
     @staticmethod
     def get(name):
-        users = pg_manager.query_output(cursor=pg_cursor_read, query=query_for_all_users)
-        for user in users:
-            user_name = user.get("user_name", None)
-            if user_name:
-                if user_name == name:
-                    return user, 200
+        query = "select * from cloud.users where user_name='{}'".format(name)
+        users = pg_manager.query_output(cursor=pg_cursor_read, query=query)
+        if users:
+            user = users[0] if len(users) > 0 else None
+            if user:
+                return user, 200
         return "User {} not found".format(name), 404
 
     @staticmethod
     def post(name):
-        users = pg_manager.query_output(cursor=pg_cursor_read, query=query_for_all_users)
         parser = reqparse.RequestParser()
         parser.add_argument("mail")
         parser.add_argument("age")
@@ -42,11 +39,13 @@ class Users(Resource):
         parser.add_argument("sex")
 
         args = parser.parse_args()
-        for user in users:
-            user_name = user.get("user_name", None)
-            if user_name:
-                if user_name == name:
-                    return "User with name {} already exists".format(name), 400
+
+        query = "select * from cloud.users where user_name='{}'".format(name)
+        users = pg_manager.query_output(cursor=pg_cursor_read, query=query)
+        if users:
+            user = users[0] if len(users) > 0 else None
+            if user:
+                return "User with name {} already exists".format(name), 400
 
         user = {}
         user.update({
@@ -73,7 +72,6 @@ class Users(Resource):
 
     @staticmethod
     def put(name):
-        users = pg_manager.query_output(cursor=pg_cursor_read, query=query_for_all_users)
         parser = reqparse.RequestParser()
         parser.add_argument("mail")
         parser.add_argument("age")
@@ -81,24 +79,24 @@ class Users(Resource):
         parser.add_argument("sex")
         args = parser.parse_args()
 
-        for user in users:
-            user_name = user.get("name", None)
-            if user_name:
-                if user_name == name:
-                    age = args.get("age", None)
-                    occupation = args.get("occupation", None)
-                    sex = args.get("sex", None)
-                    mail = args.get("mail", None)
+        query = "select * from cloud.users where user_name='{}'".format(name)
+        users = pg_manager.query_output(cursor=pg_cursor_read, query=query)
+        if users:
+            user = users[0] if len(users) > 0 else None
+            if user:
+                age = args.get("age", None)
+                occupation = args.get("occupation", None)
+                sex = args.get("sex", None)
+                mail = args.get("mail", None)
 
-                    unique_string = "{}_{}".format(name, mail)
-                    hash_id = create_unique_hash(unique_string=unique_string)
+                unique_string = "{}_{}".format(name, mail)
+                hash_id = create_unique_hash(unique_string=unique_string)
 
-                    query = "update cloud.users set user_id='{}', user_mail='{}', user_age={}, user_sex='{}', " \
-                            "user_occupation='{}' where user_name='{}'".format(hash_id, mail, age, sex,
-                                                                               occupation, name)
-                    pg_manager.query_insert(connection=pg_connection, cursor=pg_cursor_write, query=query)
+                query = "update cloud.users set user_id='{}', user_mail='{}', user_age={}, user_sex='{}', " \
+                        "user_occupation='{}' where user_name='{}'".format(hash_id, mail, age, sex, occupation, name)
+                pg_manager.query_insert(connection=pg_connection, cursor=pg_cursor_write, query=query)
 
-                    return user, 200
+                return user, 200
 
         user = {}
         user.update({
@@ -123,6 +121,6 @@ class Users(Resource):
 
     @staticmethod
     def delete(name):
-        users = pg_manager.query_output(cursor=pg_cursor_read, query=query_for_all_users)
-        users = [user for user in users if user.get("name", None) != name]
+        query = "delete from cloud.users where user_name='{}'".format(name)
+        pg_manager.query_insert(connection=pg_connection, cursor=pg_cursor_write, query=query)
         return "User {} is deleted".format(name), 200

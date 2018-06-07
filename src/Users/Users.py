@@ -5,6 +5,7 @@ Project: BalanceIt
 """
 
 import hashlib
+from passlib.hash import sha256_crypt
 from flask_restful import Resource, reqparse
 from DatabaseManager.PostgresManager import PostgresManager
 
@@ -34,9 +35,7 @@ class Users(Resource):
     def post(name):
         parser = reqparse.RequestParser()
         parser.add_argument("mail")
-        parser.add_argument("age")
-        parser.add_argument("occupation")
-        parser.add_argument("sex")
+        parser.add_argument("password")
 
         args = parser.parse_args()
 
@@ -51,22 +50,22 @@ class Users(Resource):
         user.update({
             "user_name": name,
             "user_mail": args.get("mail", None),
-            "user_age": args.get("age", None),
-            "user_sex": args.get("sex", None),
-            "user_occupation": args.get("occupation", None)
+            "user_password": args.get("password", None)
         })
 
         unique_string = "{}_{}".format(user.get("user_name", None), user.get("user_mail", None))
         hash_id = create_unique_hash(unique_string=unique_string)
 
+        encrypted_password = sha256_crypt.hash(user.get("user_password", None))
+
         user.update({
-            "user_id": hash_id
+            "user_id": hash_id,
+            "user_password": encrypted_password
         })
 
-        query = "insert into cloud.users (user_id, user_name, user_mail, user_age, user_sex, user_occupation) " \
-                "values('{}', '{}', '{}', {}, '{}', '{}')".format(user.get("user_id"), user.get("user_name"),
-                                                                  user.get("user_mail"), user.get("user_age"),
-                                                                  user.get("user_sex"), user.get("user_occupation"))
+        query = "insert into cloud.users (user_id, user_name, user_mail, user_password) " \
+                "values('{}', '{}', '{}', '{}')".format(user.get("user_id"), user.get("user_name"),
+                                                        user.get("user_mail"), user.get("user_password"))
         pg_manager.query_insert(connection=pg_connection, cursor=pg_cursor_write, query=query)
         return user, 201
 
@@ -74,9 +73,8 @@ class Users(Resource):
     def put(name):
         parser = reqparse.RequestParser()
         parser.add_argument("mail")
-        parser.add_argument("age")
-        parser.add_argument("occupation")
-        parser.add_argument("sex")
+        parser.add_argument("password")
+
         args = parser.parse_args()
 
         query = "select * from cloud.users where user_name='{}'".format(name)
@@ -84,16 +82,16 @@ class Users(Resource):
         if users:
             user = users[0] if len(users) > 0 else None
             if user:
-                age = args.get("age", None)
-                occupation = args.get("occupation", None)
-                sex = args.get("sex", None)
                 mail = args.get("mail", None)
+                password = args.get("password", None)
 
                 unique_string = "{}_{}".format(name, mail)
                 hash_id = create_unique_hash(unique_string=unique_string)
 
-                query = "update cloud.users set user_id='{}', user_mail='{}', user_age={}, user_sex='{}', " \
-                        "user_occupation='{}' where user_name='{}'".format(hash_id, mail, age, sex, occupation, name)
+                encrypted_password = sha256_crypt.hash(password)
+
+                query = "update cloud.users set user_id='{}', user_mail='{}', " \
+                        "user_password='{}' where user_name='{}'".format(hash_id, mail, encrypted_password, name)
                 pg_manager.query_insert(connection=pg_connection, cursor=pg_cursor_write, query=query)
 
                 return user, 200
@@ -102,20 +100,22 @@ class Users(Resource):
         user.update({
             "user_name": name,
             "user_mail": args.get("mail", None),
-            "user_age": args.get("age", None),
-            "user_sex": args.get("sex", None),
-            "user_occupation": args.get("occupation", None)
+            "user_password": args.get("password", None)
         })
 
         unique_string = "{}_{}".format(user.get("user_name", None), user.get("user_mail", None))
         hash_id = create_unique_hash(unique_string=unique_string)
 
-        user.update({"user_id": hash_id})
+        encrypted_password = sha256_crypt.hash(password)
 
-        query = "insert into cloud.users (user_id, user_name, user_mail, user_age, user_sex, user_occupation) " \
-                "values('{}', '{}', '{}', {}, '{}', '{}')".format(user.get("user_id"), user.get("user_name"),
-                                                                  user.get("user_mail"), user.get("user_age"),
-                                                                  user.get("user_sex"), user.get("user_occupation"))
+        user.update({
+            "user_id": hash_id,
+            "user_password": encrypted_password
+        })
+
+        query = "insert into cloud.users (user_id, user_name, user_mail, user_password) " \
+                "values('{}', '{}', '{}', '{}')".format(user.get("user_id"), user.get("user_name"),
+                                                        user.get("user_mail"), user.get("user_password"))
         pg_manager.query_insert(connection=pg_connection, cursor=pg_cursor_write, query=query)
         return user, 201
 

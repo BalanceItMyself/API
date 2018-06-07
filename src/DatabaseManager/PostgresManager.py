@@ -19,7 +19,6 @@ class PostgresManager:
 
     @staticmethod
     def create_connection():
-        print (config.postgresdb_username, config.postgresdb_database)
         connection = psycopg2.connect(host=config.postgresdb_host, port=config.postgresdb_port,
                                 user=config.postgresdb_username, password=config.postgresdb_password,
                                 dbname=config.postgresdb_database)
